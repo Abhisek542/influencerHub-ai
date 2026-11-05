@@ -1,0 +1,20 @@
+# Local demo database. Bound to loopback; separate from production and from the test containers.
+services:
+  postgres:
+    image: postgres:17.6
+    container_name: influencerhub-demo-pg
+    environment:
+      POSTGRES_DB: influencerhub_demo
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - influencerhub_demo_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d influencerhub_demo"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+volumes:
+  influencerhub_demo_pg:
