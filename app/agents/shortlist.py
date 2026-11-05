@@ -239,7 +239,8 @@ async def execute(state: ShortlistState, runtime: Runtime[AgentContext]) -> dict
         await backend.set_application_status(app_id, status)
         outcomes.append({"application_id": app_id, "applicant_name": name, "outcome": status})
     changed = sum(o["outcome"] in ("ACCEPTED", "REJECTED") for o in outcomes)
-    return {"result": {"status": "DONE", "summary": f"Updated {changed} application(s).", "outcomes": outcomes}}
+    summary = f"Updated {changed} application{'' if changed == 1 else 's'}."
+    return {"result": {"status": "DONE", "summary": summary, "outcomes": outcomes}}
 
 
 def build_graph():

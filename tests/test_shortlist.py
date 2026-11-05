@@ -8,7 +8,7 @@ from langgraph.types import Command
 from app.agents.shortlist import Assessment, OutreachDraft, build_graph, evaluate_application
 from app.backend import BackendClient
 from app.context import AgentContext
-from app.llm import LLMError
+from app.llm import LLMError, OllamaLLM
 
 TOKEN = "secret-test-token-value"
 CAMPAIGN = {
@@ -129,6 +129,35 @@ def test_nothing_changes_before_approval_and_only_approved_changes_after():
     ]
     assert final["result"]["status"] == "DONE"
     assert fake.seen_auth == {f"Bearer {TOKEN}"}
+
+
+def test_discarding_a_review_changes_nothing():
+    fake = FakeBackend([app(1), app(2, name="Priya")])
+    graph = build_graph()
+    config, context = start(fake, FakeLLM())
+
+    async def run():
+        await graph.ainvoke({"campaign_id": 1}, config, context=context)
+        return await graph.ainvoke(Command(resume={"decisions": []}), config, context=context)
+
+    final = asyncio.run(run())
+    assert fake.writes == []
+    assert final["result"]["status"] == "DONE"
+    assert final["result"]["outcomes"] == []
+
+
+def test_model_requests_are_repeatable():
+    bodies = []
+
+    def ollama(request):
+        bodies.append(json.loads(request.content))
+        reply = OutreachDraft(message="Hello").model_dump_json()
+        return httpx.Response(200, json={"message": {"content": reply}})
+
+    llm = OllamaLLM(transport=httpx.MockTransport(ollama))
+    asyncio.run(llm.structured(OutreachDraft, "system", "user"))
+    assert bodies[0]["options"]["temperature"] == 0
+    assert bodies[0]["options"]["seed"] == 42
 
 
 def test_application_decided_elsewhere_is_not_overwritten():
