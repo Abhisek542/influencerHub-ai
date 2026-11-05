@@ -56,7 +56,8 @@ class OllamaLLM:
             "stream": False,
             "format": schema.model_json_schema(),
             "keep_alive": "30m",
-            "options": {"temperature": 0.1, "num_ctx": 4096, "num_predict": 700},
+            # A fixed seed and no temperature, so the same application gets the same assessment on every run.
+            "options": {"temperature": 0, "seed": 42, "num_ctx": 4096, "num_predict": 700},
         }
         try:
             async with _model_lock:
